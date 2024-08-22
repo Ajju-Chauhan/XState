@@ -1,19 +1,28 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
-function LocationSelector() {
+function XStares() {
+  const [countryName, setCountryName] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [cityName, setCityName] = useState('');
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
-  const [selectedCountry, setSelectedCountry] = useState("");
-  const [selectedState, setSelectedState] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Fetch countries on component mount
+  // Fetch all countries
   useEffect(() => {
     async function fetchCountries() {
-      const response = await fetch("https://crio-location-selector.onrender.com/countries");
-      const data = await response.json();
-      setCountries(data);
+      try {
+        const response = await fetch("https://crio-location-selector.onrender.com/countries");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        setCountries(data);
+      } catch (error) {
+        console.error("Failed to fetch countries:", error);
+        setErrorMessage("Failed to load countries.");
+      }
     }
     fetchCountries();
   }, []);
@@ -21,38 +30,69 @@ function LocationSelector() {
   // Fetch states when a country is selected
   useEffect(() => {
     async function fetchStates() {
-      if (selectedCountry) {
-        const response = await fetch(`https://crio-location-selector.onrender.com/country=${selectedCountry}/states`);
-        const data = await response.json();
-        setStates(data);
-        setCities([]); // Clear cities when a new country is selected
-        setSelectedCity(""); // Reset city selection
+      if (countryName) {
+        try {
+          const response = await fetch(`https://crio-location-selector.onrender.com/country=${countryName}/states`);
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const data = await response.json();
+          setStates(data);
+        } catch (error) {
+          console.error("Failed to fetch states:", error);
+          setErrorMessage("Failed to load states.");
+        }
       }
     }
     fetchStates();
-  }, [selectedCountry]);
+  }, [countryName]);
 
   // Fetch cities when a state is selected
   useEffect(() => {
     async function fetchCities() {
-      if (selectedState) {
-        const response = await fetch(`https://crio-location-selector.onrender.com/country=${selectedCountry}/state=${selectedState}/cities`);
-        const data = await response.json();
-        setCities(data);
+      if (countryName && stateName) {
+        try {
+          const response = await fetch(`https://crio-location-selector.onrender.com/country=${countryName}/state=${stateName}/cities`);
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const data = await response.json();
+          setCities(data);
+        } catch (error) {
+          console.error("Failed to fetch cities:", error);
+          setErrorMessage("Failed to load cities.");
+        }
       }
     }
     fetchCities();
-  }, [selectedState]);
+  }, [countryName, stateName]);
+
+  function handleCountryChange(e) {
+    setCountryName(e.target.value);
+    setStateName(''); // Reset state and city when country changes
+    setCityName('');
+    setStates([]);
+    setCities([]);
+    setErrorMessage('');
+  }
+
+  function handleStateChange(e) {
+    setStateName(e.target.value);
+    setCityName(''); // Reset city when state changes
+    setCities([]);
+    setErrorMessage('');
+  }
+
+  function handleCityChange(e) {
+    setCityName(e.target.value);
+  }
 
   return (
     <div>
-        <h1 style={{ display :'flex',justifyContent:"center", alignItems:"center", fontSize:"50px"}}>Select Location</h1>
-      <form style={{ display :'flex',justifyContent:"center", alignItems:"center"}}>
-        {/* Country Dropdown */}
-        <select style={{padding:"20px",fontSize:'30px',margin:'5px'}}
-          onChange={(e) => setSelectedCountry(e.target.value)}
-          value={selectedCountry}
-        >
+      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+
+      <form>
+        <select onChange={handleCountryChange} value={countryName}>
           <option value="">Select Country</option>
           {countries.map((country, index) => (
             <option key={index} value={country}>
@@ -61,12 +101,9 @@ function LocationSelector() {
           ))}
         </select>
 
-        {/* State Dropdown */}
-        <select style={{padding:"20px",fontSize:'30px',margin:'3px'}}
-          onChange={(e) => setSelectedState(e.target.value)}
-          value={selectedState}
-          disabled={!selectedCountry}
-        >
+        <br />
+
+        <select onChange={handleStateChange} value={stateName} disabled={!countryName}>
           <option value="">Select State</option>
           {states.map((state, index) => (
             <option key={index} value={state}>
@@ -75,12 +112,9 @@ function LocationSelector() {
           ))}
         </select>
 
-        {/* City Dropdown */}
-        <select style={{padding:"20px",fontSize:'30px',margin:'3px'}}
-          onChange={(e) => setSelectedCity(e.target.value)}
-          value={selectedCity}
-          disabled={!selectedState}
-        >
+        <br />
+
+        <select onChange={handleCityChange} value={cityName} disabled={!stateName}>
           <option value="">Select City</option>
           {cities.map((city, index) => (
             <option key={index} value={city}>
@@ -90,13 +124,13 @@ function LocationSelector() {
         </select>
       </form>
 
-      {/* Display Selected Location */}
-      {selectedCity && selectedState && selectedCountry && (
-        <h3 style={{ display :'flex',justifyContent:"center", alignItems:"center",fontSize:"40px"}}
-        >You Selected {selectedCity}, {selectedState}, {selectedCountry} </h3>
+      <br />
+
+      {cityName && stateName && countryName && (
+        <h3>You selected {cityName}, {stateName}, {countryName}</h3>
       )}
     </div>
   );
 }
 
-export default LocationSelector;
+export default XStares;
